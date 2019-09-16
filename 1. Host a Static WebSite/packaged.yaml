@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Serverless website
+
+  '
+Resources:
+  CloudFrontOriginAccessIdentity:
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: Serverless website OA
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+  CloudfrontDistribution:
+    Properties:
+      DistributionConfig:
+        Comment: Cloudfront distribution for serverless website
+        DefaultCacheBehavior:
+          AllowedMethods:
+          - GET
+          - HEAD
+          - OPTIONS
+          Compress: 'true'
+          ForwardedValues:
+            QueryString: false
+          TargetOriginId: s3-website
+          ViewerProtocolPolicy: redirect-to-https
+        DefaultRootObject: index.html
+        Enabled: true
+        HttpVersion: http2
+        Origins:
+        - DomainName:
+            Fn::GetAtt:
+            - S3Bucket
+            - DomainName
+          Id: s3-website
+          S3OriginConfig:
+            OriginAccessIdentity:
+              Fn::Sub: origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}
+    Type: AWS::CloudFront::Distribution
+  S3Bucket:
+    Properties:
+      BucketName: static-website-608965
+    Type: AWS::S3::Bucket
+  S3BucketPolicy:
+    Properties:
+      Bucket:
+        Ref: S3Bucket
+      PolicyDocument:
+        Statement:
+        - Action: s3:GetObject
+          Effect: Allow
+          Principal:
+            AWS:
+              Fn::Sub: arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity
+                ${CloudFrontOriginAccessIdentity}
+          Resource:
+          - Fn::Sub: arn:aws:s3:::${S3Bucket}/*
+    Type: AWS::S3::BucketPolicy
+Transform: AWS::Serverless-2016-10-31
